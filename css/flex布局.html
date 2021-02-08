@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Document</title>
+	<style>
+	*{
+		margin: 0;
+		padding: 0;
+	}
+	input,button{
+		border:none;
+	}
+	html{
+		font-size: 10px;
+		background-color: #f6f6f6;
+	}
+	header{
+		height: 9rem;
+		background-color: black;
+		display: flex;
+		justify-content: space-between;
+	}
+	header div:nth-child(1){
+		text-align:center;
+		width: 6rem;
+
+	}
+	header div:nth-child(2){
+		flex-grow:1;
+		display: flex;
+		align-items:center;
+		margin:0 5rem;
+	}
+	header div:nth-child(2) .options{
+		background-color:white;
+		height: 4rem;
+		padding: 1rem 1rem 1rem 4rem;
+		display: flex;
+		border-right: solid 0.1rem #aaa;
+		border-top-left-radius: 3rem;
+		border-bottom-left-radius: 3rem;
+		align-items:center;
+	}
+	header div:nth-child(2) .options span:nth-child(1){
+		line-height: 4rem;
+		font-size:2.6rem;
+	}
+	header div:nth-child(2) .input-wrapper{
+		flex-grow:1;
+	}
+	header div:nth-child(2) .input-wrapper input{
+		border-top-right-radius: 3rem;
+		border-bottom-right-radius: 3rem;
+		padding-left:2.2rem;
+		width: 100%;
+		height: 6rem;
+		box-sizing: border-box;
+		font-size: 2.6rem;
+	}
+	header div:nth-child(3){
+		text-align:center;
+		width: 9rem;
+		line-height: 9rem;
+		color:#ccc;
+		font-size: 3.2rem
+	}
+	p.search-history{
+		padding:0 2rem;
+		height: 9rem;
+		background-color: white;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		border-bottom: solid 1px #ccc;
+	}
+	p.search-history span:nth-child(1){
+		font-size: 2.8rem;
+		color: #888
+	}
+	.search-history-items{
+		padding: 2.8rem 0;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		background-color: white;
+	}
+	.search-history-items::after{
+		content:'';
+		display: block;
+		flex-grow: 1
+	}
+	.search-history-items span{
+		color:#555;
+		background-color: #f2f2f2;
+		font-size:2.4rem;
+		padding: 1rem 2.2rem;
+		border-radius: 2.8rem;
+		margin: 0 1.1rem 2.8rem;
+	}
+	.favorite{
+		margin-top:10rem;
+		height: 9rem;
+		line-height: 9rem;
+		text-align: center;
+		background-color: white;
+		position: relative;
+		font-size: 3.2rem;
+		color:#F07A1A;
+	}
+	.favorite::after{
+		content:'';
+		display: block;
+		width:70rem;
+		height: 0.1rem;
+		background-color: #bbb;
+		position: absolute;
+		left: 0;right: 0;
+		margin:auto;
+	}
+	.favorite-items{
+		background-color: white;
+		padding-bottom: 7.5rem
+	}
+	.favorite-items p{
+		padding: 3rem 0 0;
+		display: flex;
+		justify-content: center
+	}
+	.favorite-items p span{
+		padding:0.8rem 1.3rem;
+		border:1px solid #aaa;
+		border-radius: 5rem;
+		font-size: 2.4rem;
+		margin: 0 0.8rem;
+		color: #666;
+	}
+	.confirm{
+		background-color: white;
+		padding-bottom: 3rem;
+		margin-bottom: 18rem;
+		text-align: center;
+
+	}
+	.confirm .confirm-button{
+		width: 20rem;
+		height: 8rem;
+		border-radius: 2rem;
+		font-size: 2.8rem;
+		background-color: #EF9A49;
+		color: white;
+		
+	}
+	</style>
+</head>
+<body>
+	<header>
+		<div><img src="" alt=""></div>
+		<div>
+			<p class='options'>
+				<span>店铺</span>
+				<span><!--背景图--></span>
+			</p>
+			<p class='input-wrapper'>
+				<input placeholder="搜索店铺"/>
+			</p>
+		</div>
+		<div>取消</div>
+	</header>
+	<p class='search-history'>
+		<span>历史搜索</span>
+		<span><!--字体图标--></span>
+	</p>
+	<section class='search-history-items'>
+		<span>芋圆</span>
+		<span>牛排</span>
+		<span>乌冬面</span>
+		<span>咖啡</span>
+		<span>自助餐</span>
+		<span>KTV</span>
+		<span>电影</span>
+		<span>展览馆</span>
+		<span>主题公园</span>
+		<span>纹身</span>
+		<span>农家乐</span>
+	</section>
+	<p class="favorite">直接选择您喜欢的</p>
+	<section class='favorite-items'>
+		<p><span>甜品</span><span>火锅</span><span>火锅</span><span>火锅</span></p>
+		<p><span>东北菜</span><span>烤肉</span><span>烤肉</span><span>烤肉</span><span>烤肉</span></p>
+		<p><span>东北菜</span><span>烤肉</span><span>烤肉</span><span>烤肉</span><span>烤肉</span></p><p><span>东北菜</span><span>烤肉</span><span>烤肉</span><span>烤肉</span><span>烤肉</span></p>
+	</section>
+	<p class='confirm'>
+		<button class='confirm-button'>确定</button>
+	</p>
+</body>
+</html>

@@ -1221,7 +1221,7 @@ const app = new Vue({
 
 #### 10.2全局组件和局部组件
 
-- 当我们通过调用Vue.component()注册组件时，注册的是**全局组件**，这意味着该组件可以在任意Vue示例下使用，以下app1与app2都会显示
+- 当我们通过调用Vue.component()注册组件时，注册的是**全局组件**，这意味着该组件可以在任意Vue实例下使用，以下app1与app2都会显示
 
   ```
   <body>
@@ -1554,3 +1554,1400 @@ props的值有两种方式
 
 - 方式一：字符串数组，数组中的字符串就是传递时的名称
 - 方式二：对象，对象可以设置传递时的类型。也可以设置默认值等
+
+```
+//数组写法
+<body>
+	<div id='app'>
+		//通过:message='message'的方式，将data中的message传递给了props
+		<child-cpn :message='message'></my-cpn>
+		//如果是变量用 :参数名称="变量值"
+		//如果是字符串常量 直接 参数名称="值"
+		<child-cpn message='message'></my-cpn>//这里传过去的是message这个字符串
+	</div>
+</body>
+
+<template id="childCpn">
+	<div>
+		显示的信息：{{message}}
+	</div>
+</template>
+<script >
+	const app = new Vue({
+	el:'#app',
+	data:{
+		message:'hello'
+	},
+	components:{
+		'child-cpn':{
+			template:'#childCpn',
+			props:['message']//porps引用了该数据
+		}
+	}
+})
+</script>
+```
+
+- 当我们需要对props进行**类型等验证**的时候需要对象写法
+
+- 支持的数据类型为String、Number、Boolean、Array、Object、Date、Function、Symbol
+
+- 当我们有自定义构造函数时，验证也支持自定义类型
+
+  ```
+  function Person(firstName,lastName){
+  	this.firstName = firstName
+  	this.lastName = lastName
+  }
+  Vue.component('blog-post',{
+  	props:{
+  		author:Person
+  	}
+  })
+  ```
+
+```
+//对象写法
+Vue.component('my-component',{
+	props:{
+		//基础的类型检测(null 是匹配任何类型)
+		propA:Number,
+		//多个可能的类型
+		propB:[String,Number],
+		//必填的字符串
+		propC:{
+			type:String,
+			required:true
+		},
+		//带有默认值的数字
+		propD:{
+			type:Number,
+			default:100
+		}
+		//带有默认值的对象
+		propE:{
+			type:Object,
+			//对象或数组默认值必须从一个工厂函数获取
+			default:function(){
+				return{message:'hello'}
+			}
+		},
+		//自定义验证函数
+		propF:{
+			validator:function(value){
+				//这个值必须匹配下列字符串中的一个
+				return ['success','warning'.'danger'].indexOf(value) !== -1
+			}
+		}
+	}
+})
+```
+
+##### 子传父
+
+子组件要用**自定义事件**将数据或事件传递到父组件中
+
+什么时候需要自定义事件：
+
+- 当子组件需要向父组件传递数据时，就要用到自定义事件
+- v-on不仅可以用来监听DOM事件，也可以用于组件间的自定义事件
+
+自定义事件的流程：
+
+1. 在子组件中，通过`$emit()`来触发事件
+2. 在父组件中，通过v-on来监听子组件事件
+
+```
+<body>
+	<div id='app'>
+		//发生两个事件时，调用同一个函数changeTotal
+		//3.调用@increment（是$emit第一个参数内的名字）绑定父组件内的事件，与此同时也会得到附带的子组件内的数据
+		<child-cpn @increment='changeTotal' @decrement="changeTotal"></child-cpn>
+			<h2>点击次数{{total}}</h2>
+	</div>
+</body>
+
+<template id="childCpn">
+	<div>
+		<button @click='increment'>+1</button>
+		<button @click='decrement'>-1</button>
+	</div>
+</template>
+
+```
+
+```
+<script >
+	const app = new Vue({
+	el:'#app',
+	data:{
+		total:0
+	},
+	methods:{
+		changeTotal(counter){
+			//4.将子组件内的数据赋值到父组件内
+			this.total = counter
+		}
+	},
+	components:{
+		//整个操作的过程是在子组件内完成的，之后将结果数据传递给父组件
+		'child-cpn':{
+			template:'#childCpn',
+			data(){
+				return {
+					counter:0
+				}
+			},
+			methods:{
+				increment(){
+					//1.调用子组件内的数据并自加一
+					this.counter++;
+					//2.通过$emit，绑定increment事件，并附带子组件数据
+					this.$emit('increment',this.counter)
+				},
+				decrement(){
+					this.counter--;
+					this.$emit('decrement',this.counter)
+				}
+			}
+		}
+	}
+})
+</script>
+```
+
+#### 10.8父子组件的访问
+
+父组件可以访问子组件内的方法，数据
+
+- 有时候我们需要父组件直接访问子组件，子组件直接访问父组件，或者子组件访问根组件
+  - 父组件访问子组件：使用$children或者$refs
+  - 子组件访问父组件：使用$parent
+
+##### $children
+
+this.$children是一个数组类型，它包含所有子组件对象
+
+```
+<body>
+	<div id='app'>
+		<cpn></cpn>
+		<cpn></cpn>
+		<cpn></cpn>
+		<button @click='btnClick'>按钮</button>
+	</div>
+</body>
+
+<template id="cpn">
+	<div>
+		我是子组件
+	</div>
+</template>
+
+<script >
+	const app = new Vue({
+	el:'#app',
+	methods:{
+		btnClick(){
+			console.log(this.$children)
+			for(let i=0;i<this.$children.length;i++){
+				console.log(this.$children[i].name)
+			}
+		}
+	},
+	components:{
+		cpn:{
+			template:'#cpn',
+			data(){
+				return {
+					name:'我是子组件的name'
+				}
+			},
+			methods:{
+				showMessage(){
+					console.log('showMessage')
+				}
+			}
+		}
+	}
+})
+</script>
+```
+
+$children的缺陷
+
+- 通过$children访问子组件时，是一个数组类型，访问其中的子组件必须通过索引值。
+- 当子组件过多，我们需要拿到其中一个时，往往不能确定它的索引值，甚至还可能发生变化。
+- 当我们想明确获取其中一个特定的组件，这时候可以使用$refs
+
+##### $refs
+
+- $refs和ref指令通常一起使用
+- 首先，我们通过ref给某一个子组件绑定一个特定的ID
+- 其次，通过this.$refs.ID就可以访问到该组件
+
+```
+<child-cpn1 ref='child1'></child-cpn1>
+<child-cpn2 ref='child2'></child-cpn2>
+<button @click="showRefsCpn">通过refs访问子组件</button>
+```
+
+```
+showRefsCpn(){
+	console.log(this.$refs.child1.message)
+	console.log(this.$refs.child2.message)
+}
+```
+
+##### $parent
+
+我们可以通过$parent，在子组件中直接访问父组件，但是开发过程中不推荐
+
+#### 10.9slot插槽
+
+插槽就是当我们封装一个组件的时候，设置一个<slot>我们可以在其中插入不同的部分，就是保留组件的共性，将不同暴漏为插槽。
+
+```
+//基本使用
+<div id='app'>
+		<cpn></cpn>   //输出：我是插槽中的默认内容
+		<cpn>													//输出：我是替换插槽的内容
+																				我也是替换插槽的内容
+			<h2>我是替换插槽的内容</h2>  
+			<p>我也是替换插槽的内容</p>
+		</cpn>
+	</div>
+
+<template id="cpn">
+	<div>
+		<slot>我是插槽中的默认内容</slot>
+	</div>
+</template>
+
+<script >
+	Vue.component('cpn',{
+		template:'#cpn'
+	})
+	let app = new Vue({
+		el:'#app'
+	})
+</script>
+```
+
+##### 具名插槽
+
+```
+<div id='app'>
+		<!-- 没有传入任何内容 -->
+		<cpn></cpn>
+
+		<!-- 传入某一个内容 -->
+		<cpn>
+			<span slot="left">我是返回</span>
+		</cpn>
+
+		<!-- 传入所有内容 -->
+		<cpn>
+			<span slot="left">我是返回</span>
+			<span slot="center">我是标题</span>
+			<span slot="right">我是菜单</span>
+		</cpn>
+	</div>
+```
+
+```
+
+<template id="cpn">
+	<div>
+		<slot name="left">我是左侧</slot>
+		<slot name="center">我是中间</slot>
+		<slot name="right">我是右侧</slot>
+	</div>
+</template>
+
+<script >
+	Vue.component('cpn',{
+		template:'#cpn'
+	})
+	let app = new Vue({
+		el:'#app'
+	})
+</script>
+```
+
+##### 编译作用域
+
+我们考虑以下代码最终能否渲染出来
+
+<cpn v-show='isShow'></cpn>中，我们使用了isShow属性
+
+isShow属性包含在组件内，也可以包含在Vue实例中。
+
+答案：最终可以渲染出来，使用的是Vue实例的属性。
+
+官方规则：父组件模板的所有东西都会在父级作用域内编译；子组件模板的所有东西都会在自己作用域内编译。
+
+当我们在使用<cpn v-show='isShow'></cpn>的时候，整个组件的使用过程是相当于在父组件中出现的，那么它的作用域就是父组件，使用的属性也是属于父组件的属性，因此isShow使用的是Vue实例中的属性，而不是子组件中的属性
+
+```
+<div id='app'>
+		<cpn v-show='isShow'></cpn>//这里的isShow为true，
+</div>
+
+<template id="cpn">
+	<h2>我能不能显示出来</h2>
+</template>
+
+Vue.component('cpn',{
+		template:'#cpn',
+		data(){
+			return {
+				isShow:false
+			}
+		}
+	})
+	let app = new Vue({
+		el:'#app',
+		data:{
+			isShow:true
+		}
+	})
+```
+
+##### 作用域插槽
+
+父组件替换插槽的标签，但是内容由子组件提供
+
+```
+<div id='app'>
+		<!-- 列表形式展示 -->
+		<cpn >
+			<template slot-scope="slotProps">
+				<ul>
+					<li v-for="info in slotProps.data">{{info}}</li>
+				</ul>
+			</template>
+		</cpn>
+		
+		<!-- 水平展示 -->
+		<cpn>
+			<template slot-scope="slotProps">
+				<span v-for="info in slotProps.data">{{info}}</span>
+			</template>
+		</cpn>	
+	</div>
+```
+
+```
+
+<template id="cpn">
+	<div><slot :data="pLanguages"></slot></div>
+</template>
+
+<script >
+	Vue.component('cpn',{
+		template:'#cpn',
+		data(){
+			return {
+				pLanguages:['JS','Python','Swift','Go']
+			}
+		}
+	})
+	let app = new Vue({
+		el:'#app',
+	})
+</script>
+```
+
+### 11模块化开发
+
+在网页开发的早期，js制作作为一种脚本语言，做一些简单的表单验证或动画实现等，那个时候代码还是很少的。
+
+那个时候的代码是怎么写的呢？直接将代码写在<script>标签中即可
+
+随着ajax异步请求的出现，慢慢形成了前后端的分离
+
+客户端需要完成的事情越来越多，代码量也是与日俱增。
+
+为了应对代码量的剧增，我们通常会将代码组织在多个js文件中，进行维护。
+
+但是这种维护方式，依然不能避免一些灾难性的问题。
+
+比如全局变量同名问题
+
+```
+<script >
+	document.getElementById('button').onclick=function(){
+		console.log("按钮发生了点击")
+	}
+</script>
+
+//aaa.js文件中，小明定义了一个变量名称是flag，并且为true
+flag=true
+
+//bbb.js文件中，小丽也用flag变量名称，只是为false
+flag=false
+
+//main.js文件中，小明想通过flag进行一些判断，完成后续的事情
+if(flag){
+cosnole.log('小明你好')
+}
+//小明发现代码不能正常运行，去检查自己的变量发现确实是ture
+```
+
+另外，这种代码的编写方式对js文件的依赖顺序几乎是强制性的
+
+但是当js文件过多，比如有几十个的时候，弄清楚它们的顺序是一件比较同时的事情。
+
+而且即使你弄清楚顺序了，也不能避免上面出现的这种尴尬问题的发生。
+
+##### 匿名函数
+
+我们可以使用匿名函数解决上述重名问题
+
+```
+//在aaa.js文件中，我们使用匿名函数
+(funtion(){
+	var flag = true
+})
+```
+
+但是我们希望在main.js中用到flag，应该如何如理，显然另外一个文件中不容易使用，因为flag是一个局部变量。
+
+#### 11.1使用模块作为出口
+
+我们可以将需要暴露到外面的变量，使用一个模块作为出口。
+
+我们做了什么事情呢？
+
+- 非常简单，在匿名函数内部，定义一个对象。
+
+- 给对象添加各种需要暴露到外面的属性和方法(不需要暴露的直接定义即可)。
+
+- 最后将这个对象返回，并且在外面使用了一个MoudleA接受。
+
+接下来，我们在man.js中怎么使用呢？
+
+- 我们只需要使用属于自己模块的属性和方法即可
+
+```
+var ModuleA = (function(){
+		//1.定义一个对象
+		var obj = {}
+		//2.在对象内部添加变量和方法
+		obj.flag = true
+		obj.myFunc = function(info){
+			console.log(info)
+		}
+		//3.将对象返回
+		return obj
+	})
+```
+
+```
+if(ModuleA.flag){
+		console.log('小明你好')
+	}
+	ModuleA.myFunc('小明长得真帅')
+	console.log(ModuleA)
+```
+
+这就是模块最基础的封装，事实上模块的封装还有很多高级的话题：
+
+- 但是我们这里就是要认识一下为什么需要模块，以及模块的原始雏形。
+
+- 幸运的是，前端模块化开发已经有了很多既有的规范，以及对应的实现方案。
+
+常见的模块化规范：CommonJS、AMD、CMD，也有ES6的Modules
+
+#### 11.2CommonJS
+
+```
+CommonJS的导出
+module.exports = {
+	flag:true,
+	test(a,b){
+		return a+b
+	},
+	demo(a,b){
+		return a*b
+	}
+}
+```
+
+```
+CommonJS的导入
+//CommonJS模块
+let {test,demo,flag} = require('moduleA')
+
+//等同于
+let _mA=require('moduleA')
+let test = _ma.test;
+let demo = _ma.demo;
+let flag = _ma.flag
+```
+
+#### 11.3ES6的export指令
+
+##### 导出变量
+
+export指令常用于导出变量。
+
+```
+//info.js
+export let name = 'why'
+export let age = 18
+export let height =1.88
+
+//换个写法
+let name = 'why'
+let age = 18
+let height = 1.88
+export {name,age,height}
+```
+
+##### 导出函数或者输出类
+
+```
+export function test(content){
+	console.log(content)
+}
+
+export class Person {
+	cpnstructor(name,age){
+		this.name = name;
+		this.age = age
+	}
+	run(){
+		console.log(this.name+'在奔跑')
+	}
+}
+```
+
+##### export default
+
+在某些情况下，一个模块中包含某个功能，我们并不希望给这个功能命名，而且导入者可以自己命名，这个时候可以使用export default
+
+```
+export default function (){
+	console.log('default function')
+}
+```
+
+```
+//在main.js中，我们这样使用
+import myFunc from './info.js'//这里的myFunc是自己命名，可以根据需要命名对应的名字
+myFunc()
+```
+
+- 注意：**export default在同一个模块中，不允许同时存在多个**
+
+#### 11.4ES6的import指令
+
+我们使用**export**指令导出了模块对外提供的接口，下面我们就可以通过**import**命令来加载对应的这个模块。
+
+首先我们需要在HTML代码中引入两个js文件，并且类型设置为module
+
+```
+<script src="info.js" type="module"></script>
+<script src="main.js" type="module"></script>
+```
+
+import指令用于导入模块中的内容，比如main.js的代码
+
+```
+improt {name,age,height} from './info.js'
+console.log(name,age,height)
+```
+
+如果我们希望某个模块中所有的信息都导入，可以通过*导入模块中的export变量
+
+```
+import * as info from './info.js'
+console.log(info.name,info.age,info.height,info.friends)
+```
+
+### 12钩子函数
+
+钩子函数与Vue的生命周期挂钩，即在vue执行的某个阶段，会自动调用该钩子。
+
+beforeCreate
+
+created
+
+beforeMount
+
+mounted
+
+...
+
+```
+export default {
+	name:'Home',
+	data(){
+		return {
+			message:"Nihao"
+		}
+	},
+	created(){
+	//在实例创建完成后被立即调用。在这一步，实例已完成以下的配置：数据观测 (data observer)，property 和方法的运算，watch/event 事件回调。然而，挂载阶段还没开始，$el property 目前尚不可用。
+		console.log('home created')
+	},
+	mounted(){
+		//实例被挂载后调用
+	},
+	activated(){
+    //被 keep-alive 缓存的组件激活时调用。
+    //该钩子在服务器端渲染期间不被调用。
+	},
+	#deactivated(){
+		//被 keep-alive 缓存的组件停用时调用。
+		//该钩子在服务器端渲染期间不被调用。
+	}
+}
+```
+
+
+
+## Vue-cli
+
+使用 vue-cli 可以快速搭建Vue开发环境以及对应的webpack配置.
+
+### 1.安装
+
+`npm install -g @vue/cli`
+
+### 2.初始化项目
+
+`vue create my-project`
+
+## Vue-router
+
+### 1.路由
+
+路由分为前端路由和后端路由。
+
+早期都是后端路由，即我们页面需要请求不同的内容时，通过url传递给服务器，服务器渲染全部页面，再将页面返回给客户端，不需要加载任何的js和css。
+
+后面随着ajax的出现，有了前后端的开发模式，后端只需提供API返回数据，前端通过ajax获得数据，并且通过js将数据渲染在页面中。当使用ajax时，页面不会刷新。
+
+### 2.前端路由规则
+
+#### 2.1URL的hash
+
+URL的hash也就是锚点（#），本质上是改变window.location的href属性。
+
+我们可以通过直接赋值`location.hash`来改变href，但页面不会刷新
+
+> location.href
+> "http://localhost:8080/"
+>
+> location.hash="aaa"
+> "aaa"
+>
+> location.href
+> "http://localhost:8080/#aaa"
+>
+> location.hash="/foo"
+> "/foo"
+>
+> location.href
+> "http://localhost:8080/#/foo"
+
+#### 2.2HTML5的history模式
+
+history接口是H5的内容，他有五种模式改变URL而不刷新页面。
+
+**history.pushState()**
+
+> history.pushState({},'','/foo')
+> undefined
+>
+> location.href
+> "http://localhost:8080/foo"
+
+**history.replaceState()**
+
+> history.replaceState({},'','/foo')
+> undefined
+>
+> location.href
+> "http://localhost:8080/foo"
+
+**history.go()**
+
+### 3.vue-router基础
+
+vue-router是基于路由和组件的
+
+- 路由用于设定访问路径，将路径和组件映射起来
+- 在vue-router的单页面应用中，页面的路径的改变就是组件的切换
+
+#### 3.1安装与使用
+
+1. 安装vue-router
+
+   - `npm install vue-router --save`
+
+2. 在模块化工程中使用（因为是插件，所以用vue.use()来安装路由功能）
+
+   1. 导入路由对象，并且调用Vue.use(VueRouter)
+   2. 创建路由实例，并且传入路由映射配置
+   3. 在Vue实例中挂载创建的路由实例
+
+   ```
+   //创建router实例
+   
+   import Vue from 'vue'
+   import VueRouter from 'vue-router'
+   
+   //1.插入插件
+   Vue.use(VueRouter)
+   
+   //2.定义路由
+   const routes=[]
+   
+   //3.创建router实例
+   const router = new VueRouter({
+   	routes
+   })
+   
+   //4.导出router实例
+   export default router
+   ```
+
+   ```
+   //挂载到Vue实例
+   import Vue from 'vue'
+   import App from './App'
+   import router from './router'
+   
+   new Vue({
+   	el:'#app',
+   	router,
+   	render:h=>h(App)
+   })
+   ```
+
+   
+
+使用步骤
+
+1. 创建路由组件
+
+   ```
+   //在components文件夹下创建路由组件
+   //about.vue
+   <template>
+     <div>
+       <h2>我是关于标题</h2>
+       <p>我是关于内容</p>
+     </div>
+   </template>
+   
+   <script >
+   export default {
+     name:'about', 
+   }
+   </script>
+   
+   <style scoped>
+   </style>
+   
+   ```
+
+   ```
+   //home.vue
+   <template>
+     <div>
+       <h2>我是首页标题</h2>
+       <p>我是首页内容</p>
+     </div>
+   </template>
+   
+   <script >
+   export default {
+     name:'home', 
+   }
+   </script>
+   
+   <style scoped>
+   </style>
+   
+   ```
+
+2. 配置路由映射：组件和路径映射关系
+
+   ```
+   //在router文件夹下index.js中配置
+   import Vue from 'vue'
+   import VueRouter from 'vue-router'
+   
+   import Home from '../components/home'
+   import About from '../components/about'
+   //1.插入插件
+   Vue.use(VueRouter)
+   
+   //2.定义路由
+   const routes=[
+   	{
+   		path:'/home',
+   		component:Home
+   	},
+   	{
+   		path:'/about',
+   		component:About
+   	}
+   ]
+   
+   //3.创建router实例
+   const router = new VueRouter({
+   	routes
+   })
+   
+   //4.导出router实例
+   export default router
+   ```
+
+3. 使用路由：通过<router-link>和<router-view>
+
+   ```
+   //在App.vue文件中使用路由
+   <template>
+     <div id="app">
+     	//网页的其他内容，比如顶部的标题和导航，或者底部的一些版权信息等会和router-view处于同一级别
+       <h2>我是网站的标题</h2>
+       
+       //<router-link>是一个vue-router中内置的组件，它会被渲染成一个<a>标签
+       <router-link to="/home">首页</router-link>
+       <router-link to="/about">关于</router-link>
+       
+       //<router-view>该标签会根据当前的路径，动态渲染不同的组件
+       //路由切换的时候，切换的是<router-view>挂载的组件，其他内容不会发生改变
+       <router-view></router-view>
+       
+       <h2>我是App中的一些底部版权信息</h2>
+     </div>
+   </template>
+   
+   <script >
+   export default {
+     name:'App', 
+     components:{
+       
+     }
+   }
+   </script>
+   
+   <style scoped>
+   </style>
+   
+   ```
+
+#### 3.2默认路径
+
+默认情况下进入首页的网站。
+
+```
+//我们只需要多配置一个映射就行
+const routes = [
+	{
+		path:'/',
+		//我们将根路径重定向到/home
+		redirect:'/home'
+	}
+]
+```
+
+#### 3.3去掉#的hitory模式
+
+改变路径的方式根据路由规则有两种
+
+- URL的hash  
+
+  > localhost:8080/#/about
+
+- HTML5的history
+
+  > localhost:8080/about
+
+- 默认情况下使用的是URL的hash
+
+希望使用history模式配置如下
+
+```
+//在创建router实例的时候添加mode
+const router = new VueRouter({
+	routes,
+	mode:'history'
+})
+```
+
+#### 3.4router-link补充
+
+在<router-link>中，除了to属性用于指定跳转路径还有其他属性
+
+- to  指定跳转路由
+
+- tag 指定<router-link>渲染成什么组件，比如<router-link to="/home" tag="li">会被渲染成一个li元素，而不是a。
+
+- replace 不会留下history记录，所以指定replace情况下，后退键不能返回上一个页面
+
+- active-class 当<router-link>对应的路由匹配成功时，会自动给当前元素设置一个router-link-active的class，设置active-class可以修改默认的名称
+
+  - 在进行高亮显示的导航菜单或者底部tabbar时，会用到该类
+
+  - 但是通常不会修改类的属性，会直接使用默认的router-link-ative
+
+    ```
+    <div id='app'>
+    	<h1>我是网站的标题</h1>
+    	<a href='/home' class="router-link-exact-active router-link-active">首页</a>
+    </div>
+    ```
+
+  - 该类名名称也可以通过router实例实现
+
+    ```
+    //在创建router实例的时候添加mode
+    const router = new VueRouter({
+    	routes,
+    	linkActiveClass:'active'
+    })
+    ```
+
+    ```
+    <div id='app'>
+    	<h1>我是网站的标题</h1>
+    	<a href='/home' class="router-link-exact-active active">首页</a>
+    </div>
+    ```
+
+#### 3.5路由代码跳转
+
+有时候页面的跳转需要执行对应的js代码，这时候可以用第二种跳转方式
+
+```
+//App.vue设置如下
+<template>
+  <div id="app">
+    <h2>我是网站的标题</h2>
+    <button @click="linkToHome">首页</button>
+    <button @click="linkToAbout">关于</button>
+    <router-view></router-view>
+    <h2>我是App中的一些底部版权信息</h2>
+  </div>
+</template>
+
+<script >
+export default {
+  name:'App', 
+  methods:{
+    linkToHome(){
+      this.$router.push('/home')
+    },
+    linkToAbout(){
+      this.$router.push('/about')
+    }
+  }
+}
+</script>
+
+<style scoped>
+</style>
+```
+
+#### 3.6动态路由
+
+在某些情况下，一个页面的path路径可能是不确定的，比如我们进入用户界面时，希望得到的时如下路径/user/zhangsan，除了前面的/user以外，后面还拼接了用户的id。
+
+这种path和component的匹配关系我们称之为动态路由（也是路由传递数据的一种方式）
+
+```
+//路由配置
+{
+	path:'/uer/:id',
+	component:User
+}
+```
+
+```
+//模块配置
+<template>
+  <div id="app">
+  //通过v-bind动态绑定属性并且获取data()中的值
+    <router-link :to="'/user/'+userId"></router-link>
+  </div>
+</template>
+
+<script >
+export default {
+  name:'App', 
+  data(){
+    return {
+      userId:'zhangsan'
+    }
+  }
+}
+</script>
+```
+
+此时我们已经替换成功了。但是我们还可以通过{{$route.params.id}}获取id值
+
+```
+<div>
+	//注意这里的是$route,所对应的是路由配置中的一个小的route
+	//this.$router.push('/home')中的router对应的是new的router实例
+	<h2>{{$route.params.id}}</h2>
+</div>
+```
+
+#### 3.7路由的懒加载
+
+当打包构建应用时，JS包会变得非常大，因为在被打包完成的时候，页面都会被放到一个js文件中，如果我们一次性从服务器请求来这个文件，可能需要花费一定的时间，甚至用户电脑还出现短暂的空白，影响体验，如果我们将不同路由对应的组件在被该组件被访问时才加载，就会变得高效。
+
+懒加载做了什么
+
+- 路由懒加载的主要作用就是将路由对应的组件打包成一个个js代码块
+- 只有这个路由被访问到的时候，才加载对应的组件
+
+**懒加载的三种方式**
+
+方式一：结合Vue的异步组件和webpack的代码分析
+
+`const Home = resolve => { require.ensure(['../components/Home.vue'], () => { resolve(require('../components/Home.vue')) })};`
+
+方式二：AMD写法
+
+`const About = resolve => require(['../components/About.vue'], resolve);`
+
+方法三：在es6中更加简洁的写法来组织Vue和Webpack
+
+`const Home = ()=>import('../components/home.vue')`
+
+```
+//原先
+import Home from '../components/home'
+import About from '../components/about'
+//1.插入插件
+Vue.use(VueRouter)
+
+//2.定义路由
+const routes=[
+	{
+		path:'/home',
+		component:Home
+	},
+	{
+		path:'/about',
+		component:About
+	}
+]
+
+```
+
+```
+//懒加载写法
+const Home = ()=>import('../components/home.vue')
+const About = ()=>import('../components/about.vue')
+
+//1.插入插件
+Vue.use(VueRouter)
+
+//2.定义路由
+const routes=[
+	{
+		path:'/home',
+		component:Home
+	},
+	{
+		path:'/about',
+		component:About
+	}
+]
+
+
+
+
+
+//或者
+//1.插入插件
+Vue.use(VueRouter)
+
+const routes = [
+	{
+		path:'/home',
+		component:()=>import('../components/Home')
+	},
+	{
+		path:'/about',
+		component:()=>import('../components/About')
+	}
+]
+```
+
+#### 3.8嵌套路由
+
+嵌套路由非常常见，比如我们希望访问home页面中的news和message页面。
+
+路径为/home ,/home/news,/home/message
+
+实现嵌套路由有两个步骤
+
+1. 创建对应子组件，并且在路由映射中配置对应的子组件
+2. 在组件内部使用<router-view>标签
+
+```
+//message.vue组件
+<template>
+  <div>
+    <ul>
+      <li>message1</li>
+      <li>message2</li>
+      <li>message3</li>
+    </ul>
+  </div>
+</template>
+
+<script >
+export default {
+  name:'message', 
+}
+</script>
+```
+
+```
+//news.vue组件
+<template>
+  <div>
+    <ul>
+      <li>new1</li>
+      <li>new2</li>
+      <li>new3</li>
+    </ul>
+  </div>
+</template>
+
+<script >
+export default {
+  name:'new', 
+}
+</script>
+```
+
+```
+//home.vue组件
+<template>
+ <div id="home">
+   <h2>我是首页标题</h2>
+   <router-link to="/home/message">消息</router-link>
+   <router-link to="/home/news">新闻</router-link>
+ </div>
+</template>
+
+<script >
+export default {
+  name:'home', 
+}
+</script>
+
+```
+
+```
+//router文件夹下的index.js
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+
+//懒加载写法
+const Home = ()=>import('../components/home.vue')
+const Message = ()=>import('../components/message')
+const News = ()=>import('../components/news')
+
+//1.插入插件
+Vue.use(VueRouter)
+
+//2.定义路由
+const routes=[
+	{
+		path:'/home',
+		component:Home,
+		children:[
+			{
+				path:'message',
+				component:Message
+			},
+			{
+				path:"news",
+				component:News
+			},
+			//如果要配置默认路径
+			{
+				path:'',
+				redirect:'message'
+			}
+		]
+	},
+]
+```
+
+#### 3.9传递参数
+
+传递参数主要有两种类型：params和query
+
+params的类型：
+
+- 配置路由格式：/router/:id
+- 传递方式：在path后面跟上对应的值
+- 传递后形成的路径：/router/123,/router/abc
+
+query类型：
+
+- 配置路由格式：/router，就是普通配置
+- 传递方式：对象中使用query的key作为传递方式
+- 传递后形成的路径：/router?id=123,/router?id=abc
+
+使用方式有两种，<router-link>和js代码。
+
+```
+//使用方式1  <router-link>
+<router-link :to="{path:'/profile'+123,query:{name:'why',age:18}}"> 
+```
+
+```
+//使用方式2 js代码
+methods:{
+	toProfile(){
+		this.$router.push({
+			path:'/profile/'+123,
+			query:{name:'why',age:18}
+		})
+	}
+}
+```
+
+#### 3.10获取参数
+
+获取参数通过$route对象获取。
+
+在使用了vue-router的应用中，路由对象会被注入每个组件中，赋值为this.$route，并且当路由切换时，路由对象会被更新。
+
+```
+<template>
+	<div>
+		<p>params:{{$route.params}}</p>
+		<p>qeury:{{$route.query}}</p>
+	</div>
+</template>
+```
+
+#### 3.11$route和$router的不同
+
+$route和$router是有区别的
+
+- $router为VueRouter实例，想要导航到不同URL，则使用$router.push方法
+
+- $route为当前router跳转对象里面可以获取name、path、query、params等 
+  - `this.$route.path`可以获得当前活跃的路由的path
+
+#### 3.12导航守卫
+
+什么是导航守卫？
+
+- vue-router提供的导航首位主要用来监听路由的进入和离开
+- vue-router提供了beforeEach和afterEach的钩子函数，它们会在路由即将改变前和改变后触发
+
+我们可以通过beforeEach完成标题的修改，即每次跳转页面，title值修改。
+
+```
+//第一步在钩子中定义标题，用meta定义
+//2.定义路由
+const routes=[
+	{
+		path:'/home',
+		component:Home,
+		meta:{
+			title:'首页'
+		}
+	},
+	{
+		path:'/about',
+		component:About,
+		meta:{
+			title:'关于'
+		}
+	}
+]
+
+```
+
+```
+//第二步利用导航守卫修改标题
+//3.创建router实例
+const router = new VueRouter({
+	routes,
+	linkActiveClass:'active'
+})
+
+//导航钩子的三个参数解析：
+	//to:即将要进入的目标的路由对象
+	//from：当前导航即将要离开的路由对象
+	//next：调用该方法后，才能进入下一个钩子
+router.beforeEach((to.from,next)=>{
+	window.document.title = to.meta.title
+	next()
+})
+```
+
+注意：
+
+- 如果是后置钩子，也就是afterEach，不需要主动调用next()函数
+- 上面使用的导航守卫是全局守卫，还有路由独享的守卫以及组件内的守卫
+
+
+
+#### 3.13keep-alive和router-alive的搭配使用
+
+每当切换路由路径的时候，组件是会被重新加载渲染的，所以相当于每次都会请求，如果我们希望将该页面缓存下来，这就需要用到keep-alive
+
+keep-alive是Vue内置的一个组件，可以使被包含的组件保留状态，或避免重新渲染。
+
+他有两个很重要的属性
+
+- incude  字符串或正则表达式，只有匹配的组件会被缓存
+- exclude  字符串或正则表达式，任何匹配的组件都不会被缓存
+
+router-view也是一个组件，如果直接被包在keep-alive里，所有路径匹配到的视图组件都会被缓存
+
+```
+<keep-alive>
+	<router-view>
+		//所有路径匹配到的视图组件都会被缓存
+	</router-view>
+</keep-alive>
+```
+
+### 4.tabbar案例
+
+1. 如果在下方有一个单独的TabBar组件，你如何封装
+   - 自定义TabBar组件，在APP中使用	
+   - 让TabBar出于底部，并且设置相关的样式
+2. TabBar中显示的内容由外界决定
+   - 定义插槽
+   - flex布局平分TabBar
+3. 自定义TabBarItem，可以传入 图片和文字
+   - 定义TabBarItem，并且定义两个插槽：图片、文字。
+   - 给两个插槽外层包装div，用于设置样式。
+   - 填充插槽，实现底部TabBar的效果
+4. 传入 高亮图片
+   - 定义另外一个插槽，插入active-icon的数据
+   - 定义一个变量isActive，通过v-show来决定是否显示对应的icon
+5. TabBarItem绑定路由数据
+   - 安装路由：npm install vue-router —save
+   - 完成router/index.js的内容，以及创建对应的组件
+   - main.js中注册router
+   - APP中加入<router-view>组件
+6. 点击item跳转到对应路由，并且动态决定isActive
+   - 监听item的点击，通过this.$router.replace()替换路由路径
+   - 通过this.$route.path.indexOf(this.link) !== -1来判断是否是active
+7. 动态计算active样式
+   - 封装新的计算属性：**this**.isActive ? {'color': 'red'} : {}
