@@ -2951,3 +2951,265 @@ router-view也是一个组件，如果直接被包在keep-alive里，所有路�
    - 通过this.$route.path.indexOf(this.link) !== -1来判断是否是active
 7. 动态计算active样式
    - 封装新的计算属性：**this**.isActive ? {'color': 'red'} : {}
+
+## VueX
+
+Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。
+
+采用集中式存储管理应用的所有组件的状态，并以相应的规则保证状态以一种可预测的方式发生变化。
+
+状态管理：就是把需要多个组件共享的变量全部存储在一个对象中，然后将这个对象放到Vue实例中。
+
+**单页面的状态管理**
+
+State：我们的状态（可以当作是data中的属性）
+
+View：视图层，可以针对State的变化显示不同的信息
+
+Actions：这里的Actions主要是用户的各种操作，比如点击输入等，会导致状态的变化。
+
+![](F:\记录\img\单页面状态管理.png)
+
+**多页面的状态管理**
+
+![](F:\记录\img\多页面状态管理.png)
+
+### 1.简单案例
+
+```
+//store文件夹下的index.js文件
+import VueX from 'vuex'
+	import Vue from 'vue'
+
+	Vue.use(VueX)
+
+	const store = new Vuex.Store({
+		state:{
+			count:0
+		},
+		mutations:{
+			increment(state){
+				state.count++
+			},
+			decrement(state){
+				state.count--
+			}
+		}
+	})
+	export default store
+```
+
+挂载到Vue实例中，我们让所有的组件都可以使用这个store对象
+
+```
+//在main.js中导入store对象，并且放到new Vue中，这样在其他Vue组件中我们可以通过this.$store的方法获取到这个store对象。
+import Vue from "vue"
+import App from "./App"
+import store from './store'
+new Vue({
+	el:"#app",
+	store,
+	render:h=>h(App)
+})
+```
+
+组件中使用
+
+```
+<template>
+  <div id="app">
+    <p>{{count}}</p>
+    <button @click="increment">+1</button>
+    <button @click="decrement">-1</button>
+  </div>
+</template>
+
+<script >
+export default {
+  name:'App', 
+  components: {
+
+  },
+  computed:{
+    count:function(){
+      return this.$store.state.count
+    }
+  },
+  methods:{
+    increment:function(){
+      this.$store.commit("increment")
+    },
+    decrement:function(){
+      this.$store.commit("decrement")
+    }
+  }
+}
+</script>
+
+```
+
+使用步骤：
+
+1. 提取一个公共的store对象，用于保存在多个组件中共享的状态。
+2. 将store对象放置在new Vue对象中，这样可以保证在所有的组件中都可以使用
+3. 在其他组件中使用store对象中保存的状态即可
+   - 通过this.$store.state.属性的方式来访问状态
+   - 通过this.$store.commit('mutation中方法')来修改状态
+
+注意事项：
+
+- 我们通过提交mutation的方式，而非直接改变store.state.count
+- 这是因为Vuex可以更明确的追踪状态变化，所以不要直接改变store.state.count的值
+
+### 2.Vuex核心概念
+
+#### State单一状态树
+
+Vuex 使用**单一状态树**——是的，用一个对象就包含了全部的应用层级状态。至此它便作为一个“唯一数据源 ([SSOT (opens new window)](https://en.wikipedia.org/wiki/Single_source_of_truth))”而存在。这也意味着，每个应用将仅仅包含一个 store 实例。单一状态树让我们能够直接地定位任一特定的状态片段，在调试的过程中也能轻易地取得整个当前应用状态的快照。
+
+#### Getter计算属性
+
+getter在store中类似于组件中的计算属性computed
+
+获取学生年龄大于20的个数
+
+```
+const store = new Vuex.Store({
+	state:{
+		students:[
+			{id:110,name:'kobe',age:18},
+			{id:111,name:'kobe1',age:21},
+			{id:112,name:'kobe2',age:26},
+			{id:113,name:'kobe3',age:30},
+		]
+	},
+	getter:{
+	greaterAgesCount:state=>{
+		//filter方法 filter为其中的每个元素调用一次 callback函数，并利用所有并callback返回true或等价于true的值的元素创建一个新callback 数组。只会在已经赋值的索引上被调用，对于那些已经被删除或从未那些没有通过 callback测试的元素会被跳过，不会被包含在新数组中。
+		return state.students.filter(s=>s.age>=20).length
+	}
+}
+})
+```
+
+```
+//组件中使用计算属性
+computed:{
+	getGreaterAgesCount(){
+		return this.$store.state.students.filter(age=>age>=20).length
+	}
+}
+```
+
+如果我们已经有了一个获取所有年龄大于20岁学生列表的getters，那么代码可以这么写
+
+```
+getters:{
+	greaterAgesStus:state=>{
+		return state.students.filter(s=>s.age>=20)
+	},
+	greaterAgesCount:(state,getters)=>{//这里的getters能获得getters里面的属性和方法
+		return getters.greaterAgesStus.length
+	}
+}
+```
+
+如果我们希望不写死数据，根据传过来的参数筛选数据
+
+getters默认是不能传递参数的，所有我们需要直接让getters返回一个函数，让返回的函数接收参数
+
+```
+getters:{
+	greaterAgesStus:state=>{
+		return state.students.filter(s=>s.age>=20)
+	},
+	greaterAgesCount:(state,getters)=>{//这里的getters能获得getters里面的属性和方法，无论该方法第二参数写的是什么比如aaa，返回的都是getters
+		return getters.greaterAgesStus.length
+	},
+	studentById(state){
+		return function(id){
+			return state.students.find(s=>s.id===id)
+		}
+	},
+	//简写
+	studentById:state=>{
+		return id=>{
+			return state.students.find(s=>s.id===id)
+		}
+	}
+}
+```
+
+#### Mutation方法管理
+
+Vuex的store状态的唯一更新方式是提交Mutation
+
+mutation主要包括两个部分
+
+- 字符串的事件类型
+- 一个回调函数，该回调函数的第一个参数就是state
+
+```
+//mutation的定义方式
+mutations:{
+	increment(state){
+		state.count++
+	}
+}
+```
+
+```
+//通过mutation更新
+increment:function(){
+	this.$store.commit('increment')
+}
+```
+
+##### 传递参数
+
+在通过mutation更新数据的时候，有可能我们希望携带一些额外的参数，参数被称为是mutation的载荷(payload)
+
+Mutation中的代码
+
+```
+decrement(state,n){
+	state.count -=n
+}
+```
+
+```
+decrement:function(){
+	this.$store.commit('decrement',2)
+}
+```
+
+如果参数不是一个，有很多的参数需要传递，我们会以对象的形式传递，也就是payload是一个对象
+
+```
+changeCount(state,payload){
+	state.count = payload.count
+}
+```
+
+```
+changeCount:function(){
+	this.$store.commit('changeCount',{count:0})
+}
+```
+
+commit进行提交的另一个风格，他是一个包含type属性的对象
+
+```
+this.$store.commit({
+	type:'changeCount',
+	count:100
+})
+```
+
+```
+//mutation中的处理方式是将整个commit的对象作为payload使用，所以以下代码没有发生变化
+changeCount(state,payload){
+	state.count = payload.count
+}
+```
+

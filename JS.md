@@ -1205,6 +1205,760 @@ let son = new Son()
 son.money() //子类可以继承父类的属性和方法
 ```
 
+- 在继承中，如果实例化子类输出了一个方法，先看子类有没有这个方法，如果有就先执行子类。
+- 如果子类没有，就去查找父类有没有这个方法，如果有就执行父类的这个方法。
+
 ##### super关键字
 
 super关键字用于访问和调用对象父类上的函数。可以调用父类的构造函数，也可以调用父类的普通函数。 
+
+```
+class Father {
+	//constructor()方法是类的构造函数，用于传递参数返回实例对象，通过new命令生成实例对象的时候，自动调用该方法。
+	constructor(x,y){
+		this.x=x;
+		this.y=y;
+	}
+	sum(){
+		console.log(this.x+this.y)
+	}
+}
+
+class Son extends Father {
+	constructor(x,y){
+		this.x=x;
+		this.y=y
+	}
+}
+
+let son=new Son(1,2)//如果直接这样使用是会报错的，因为1，2传递到的是Son中的constructor(x,y)，传递不到Father中，要添加super关键字
+son.sum()
+
+
+
+class Son extends Father {
+	constructor(x,y){
+		super(x,y)
+		this.x=x;
+		this.y=y
+	}
+}
+
+let son=new Son(1,2)//这样会将数据传递到father里的x，y
+son.sum()
+```
+
+- 子类在构造函数中使用super，必须放在this前面（必须先调用父类的构造方法，再使用子类的构造方法）
+- 类里面的this指向问题：constructor里面的this指向实例化对象，方法的this指向该方法的调用者
+
+```
+class Father{
+	say(){
+		return "我是爸爸"
+	}
+}
+class Son extends Father{
+	say(){
+		console.log(super.say()+"的儿子")
+	}
+}
+let son = new Son();
+son.say()
+```
+
+静态对象：在构造函数本身上添加的成员叫静态成员，只能由构造函数本身访问。
+
+实例成员：在构造函数内部创建的对象成员称为实例成员，只能由实例化的对象来访问，通过this添加的成员。
+
+##### 构造函数的问题
+
+构造函数很好用，但是会存在浪费内存的问题。内存存储的问题，如果是简单数据类型会直接赋值，如果是复杂数据类型就会开辟新的空间。
+
+所以我们可以选择将一些不变的方法直接放入prototype上，这样就可以对所有的对象的实例，共享这些方法。
+
+##### 构造函数原型prototype
+
+构造函数通过原型分配的函数时所有对象所共享的。
+
+JS规定，每一个构造函数都有一个prototype属性，指向另一个对象。注意这个prototype就是一个对象，这个对象的所有属性和方法，都会被构造函数所拥有。
+
+总结：
+
+- 原型是什么？ 一个对象，我们也成为prototype为原型对象
+- 原型的作用？  共享方法
+
+所以我们一般情况下，我们的公共属性定义到构造函数里面，公共的方法我们放到原型对象上。
+
+##### 对象原型_ _ proto_ _
+
+对象都会有一个属性`__proto__`指向构造函数的prototype原型对象，之所以我们对象可以使用构造函数prototype原型对象的属性和方法，就是因为对象有`__proto__`的存在
+
+`ldh.__proto__ == star.prototype`两者相等
+
+方法的查找规则：首先看ldh对象身上是否有sing方法，如果有就执行这个对象上的sing方法，如果没有，因为有`__proto__`的存在，就去构造函数原型对象prototype身上去查找sing这个方法。
+
+##### constructor构造函数
+
+对象原型`__proto__`和构造函数的原型对象`prototype`里面都有一个属性constructor，constructor我们称为构造函数，因为它指回构造函数本身。
+
+constructor主要用于记录该对象引用了哪些构造函数，它可以让原型对象重新指向原来的构造函数。
+
+##### 原型链
+
+![](F:\记录\img\原型链.png)
+
+#### ES6中的类和对象三个注意点
+
+1. 在ES6中类没有变量提升，必须先定义类，才能通过类实例化对象
+2. 类里面的共有属性和方法一定要加this使用
+3. 类里面的this指向问题：constructor里面的this指向实例化对象，方法的this指向该方法的调用者
+
+#### insertAdjacentHTML方法
+
+1. 创建新元素
+2. 将该元素追加到父元素里面
+
+以前做法：动态创建元素createElement，但是元素里面的内容较多，需要innerHTML赋值，再appendChild追加到父元素里面
+
+现在做法：利用insertAdjacentHTML()可以把字符串格式元素添加到父元素里。
+
+appendChild方法不支持追加字符串的子元素，insertAdjacentHTML支持追加字符串的元素。
+
+#### new构造函数在执行时做的四件事
+
+1. 在内存中创建一个新的空对象
+2. 让this指向这个新对象
+3. 执行构造函数里面的代码，给这个新对象添加属性和方法
+4. 返回这个新对象（所以构造函数不需要return）
+
+JS构造函数中可以添加一些成员，可以在构造函数本身上添加，也可以在构造函数内部的this上添加，通过这两种方法添加的成员，就分别称为静态成员和实例成员。
+
+#### JS的成员查找机制
+
+1. 当访问一个对象的属性或方法时，首先查找这个对象本身有没有该属性
+2. 如果没有就查找它的原型(也就是`__proto__`指向的prototype原型对象)
+3. 如果还没有则查找原型对象的原型(Object的原型对象)
+4. 以此类推一直找到Object为止(null)
+5. `__proto__`对象原型的意义就在于为对象成员查找机制提供一个方向，或者说一条路线
+
+#### 原型对象this指向
+
+1. 在构造函数中，里面this指向的是实例对象 ldh
+2. 在原型对象函数里面的this指向的是实例对象 ldh
+
+#### 扩展内置对象
+
+可以通过原型对象，对原来的内置对象进行扩展自身定义的方法。
+
+```
+//给数组添加自定义偶数求和的功能
+Array.prototype.sum = function(){
+	let sum = 0;
+	for(let i=0;i<this.length;i++){
+		sum+=this[i]
+	}
+	return sum
+}
+
+let arr=[1,2,3]
+arr.sum()
+```
+
+注意：数组和字符串内置对象不能给原型对象覆盖操作Array.prototype={},只能是Array.prototype.xxx=function(){}的方式
+
+#### ES5的继承
+
+ES6之前是没有extends继承，我们需要通过构造函数+原型对象模拟继承，被称为组合继承
+
+##### call()
+
+调用这个函数，可以修改函数运行时的this指向
+
+```
+function fn(x,y){
+	console.log(x+y);
+	console.log(this)
+}
+let o = {name="andy"}
+fn.call(o,1,2)
+//第一个参数：当前调用的函数this的指向对象
+//2，3，4，5等参数，传入的参数
+```
+
+```
+//借用构造函数继承父类属性
+function Father(uname,age){
+	this.uname=uname;//指向父构造函数
+	this.age=age
+}
+function Son(uname,age){
+	Father.call(this,uname,age)//这里的this指向子构造函数
+}
+let son =new Son('刘德华',18)
+```
+
+### 2.ES5的新增方法
+
+#### 1.数组方法
+
+迭代（遍历方法）：forEach()、map()(与forEach方法相似)、filter()、some()、every()(与some方法相似)
+
+##### forEach()
+
+`array.forEach(function(currentValue,index,arr))`
+
+currentValue:数组当前值
+
+index:数组当前索引
+
+arr:数组对象本身
+
+```
+let arr = [1,2,3]
+let sum = 0;
+arr.forEach(function(value,index,array){
+	console.log('每个数组元素'+value)
+	console.log("每个数组元素的索引号"+index)
+	console.log("数组本身"+array)
+	sum+=value
+})
+```
+
+##### filter()
+
+`array.filter(function(currentValue,index,arr){})`
+
+filter方法创建了一个新数组，新数组中的元素是通过检查指定数组中符合条件的所有元素，主要用于**筛选数组**。他直接返回一个新数组
+
+```
+let arr=[12,66,4,88]
+let newArr = arr.filter(function(value,index){
+	return value>=20
+})
+console.log(newArr)
+```
+
+##### some()
+
+some方法用于检测数组中的元素是否满足指定条件，通俗点查找数组中是否由满足条件的元素
+
+注意：它的返回值是布尔值，如果查找到该元素就会返回true，如果查找不到就返回false
+
+如果找到第一个满足条件的元素，则终止循环，不再继续查找。
+
+```
+let arr=[10,30,4]
+let flag = arr.some(function(value){
+	return value>=20
+})
+console.log(flag) //true
+
+let arr1=['pink','red','green']
+let flag1=arr1.some(function(value){
+	return value=='pink'
+})
+console.log(flag1)//true
+```
+
+filter 查找满足条件的元素，返回数组，把满足条件的元素返回
+
+some 查找满足条件的元素是否存在，返回一个布尔值，如果查找到第一个满足条件的元素就会终止循环
+
+#### 2.字符串方法
+
+##### trim()
+
+trim方法会从一个字符串的两端删除空白字符
+
+str.trim()
+
+trim()方法并不影响原字符本身，它返回的是一个新的字符串
+
+#### 3.对象方法
+
+##### Object.keys()
+
+该方法用于获取对象自身所有属性
+
+Object.keys(obj)
+
+想过类似于for...in...
+
+返回一个由属性名组成的数组
+
+##### Object.defineProperty()
+
+定义对象中新属性或修改原有属性
+
+Object,defineProperty(obj,prop,descriptor)
+
+obj:目标对象
+
+prop:需定义或修改的属性名字
+
+descriptor:目标属性所拥有的特性
+
+## 函数进阶
+
+### 1.函数的定义方式
+
+1. 函数声明方式function关键字（命名函数）function fn(){}
+2. 函数表达式(匿名函数) let fun = function(){}
+3. new Function(),Funtion里面的参数必须是字符串格式。
+
+### 2.函数的调用方式
+
+|              | 使用           | 声明                           |
+| ------------ | -------------- | ------------------------------ |
+| 普通函数     | fn(),fn.call() | function fn(){}                |
+| 对象的方法   | o.sayHi()      | let o={sayHi:function(){}}     |
+| 构造函数     | new Star()     | function Star(){}              |
+| 绑定事件函数 | 触发条件       | btn.onclick=function(){}       |
+| 定时器函数   | 时间触发       | setInterval(function(){},1000) |
+| 立即执行函数 | 自动调用       | (function(){})()               |
+
+### 3.this的指向
+
+| 调用方式         | this指向       |
+| ---------------- | -------------- |
+| 普通函数调用     | window         |
+| 构造函数调用     | 实例对象       |
+| 对象方法调用     | 该方法所属对象 |
+| 事件绑定方法调用 | 绑定事件对象   |
+| 定时器函数       | window         |
+| 立即执行函数     | window         |
+
+#### 改变函数内部this指向
+
+常用的由bind()、call()、apply()
+
+1. call()方法调用一个对象，简单理解为调用函数的方式，但他可以改变函数的this指向（可以实现继承）`fun.call(thisArg,arg1,arg2...)`
+2. apply()方法调用一个函数。`fun.apply(thisArg,[argsArray])`thisArg:在函数运行时指定的this值 argsArray:传递的值，必须包括在数组里。该方法返回值就是函数的返回值，因为它就是调用函数。
+3. bind()方法不会调用函数，但是能改变函数内部this指向。fun.bind(thisArg,arg1,arg2...)返回值由指定的this值和初始化参考改造的原数组拷贝。
+
+应用场景
+
+- call继承做继承
+- apply经常跟数组有关，比如借助于数学对象实现数组最大值最小值
+- bind不调用函数，但是还想改变this指向。比如改变定时器内部的this指向
+
+### 4.严格模式
+
+严格模式可以为整个脚本或者个别函数中。
+
+1. 为脚本开启严格模式
+
+   需要在所有语句前面放一个特定语句`"use strict"`或
+
+2. 为函数开启严格模式
+
+   需要把`"use strict"`声明放到函数体所有语句前
+
+### 5.深拷贝和浅拷贝
+
+浅拷贝：对于字符串类型，浅拷贝是对值的复制，对于对象来说，浅拷贝是对对象地址的复制, 也就是拷贝的结果是两个对象指向同一个地址。
+
+- ‘=’赋值
+- Object.assign()
+
+深拷贝：深拷贝开辟一个新的栈，两个对象对应两个不同的地址，修改一个对象的属性，不会改变另一个对象的属性
+
+- 手动复制
+- JSON做字符串转换。用JSON.stringify把对象转成字符串，再用JSON.parse把字符串转成新的对象。
+- 递归拷贝
+- Object.create方法
+- jquery
+
+### 6.正则表达
+
+正则表达式（Regular Expression）是用于匹配字符串中字符组合的模式
+
+在JS中，正则表达式也是对象
+
+#### 创建正则表达式
+
+JS中由两种方法创建正则表达式
+
+1. 通过调用RegExp对象的构造函数创建
+
+   `let 变量名 = new RegExp(/表达式/)`
+
+2. 通过字面量创建
+
+   `let 变量名 = /表达式/`
+
+#### 测试正则表达式 test()
+
+test()正则对象方法，用于检测字符串是否符合该规则，该对象会返回true或false,其参数是测试字符串
+
+regxObj.test(str)
+
+regexObj是正则表达式，str是文本
+
+#### 正则表达式的组成
+
+1. 边界符 正则表达式的边界符(位置符)用来提示字符所在位置
+
+   ^ 表示匹配行首的文本
+
+   $ 表示匹配行尾的文本
+
+   let rg = /^abc/ 表示必须以abc为开头
+
+   let rg = /^abc$/ 表示必须是abc这个字符串
+
+2. 字符类 [ ] 表示有一系列字符可供选择，只要匹配其中之一就行
+
+   let rg = /[abc]/ 表示只要包含有a或者包含有b或者包含有c
+
+   let rg = /^[abc]$/ 表示三选一，只有是a或只有是b或只有是c
+
+3. 范围符 -
+
+   let rg = /^[a-z]$/ 表示a-z中的任意一个
+
+   let rg = /^[a-zA-Z]$/ 表示26个英文字母任意一个，不管大小写
+
+4. 取反符 当^在括号内部时代表取反
+
+   let rg = /^[`^`a-zA-Z0-9]$/ 表示不能有a-z、A-Z、0-9
+
+5. 量词 用来设定某个模式出现的次数
+
+   `*` 重复零次或更多次 相当于>=0
+
+   let rg = /^a*$/ 表示a可以出现0到很多次
+
+   `+` 重复一次或更多次 相当于>=1
+
+   let rg = /^a+$/ 表示a可以出现一次或多次
+
+   `?` 重复零次或一次 
+
+   let rg = /^a?$/ 表示a可以出现零次或一次
+
+   {n} 重复n次
+
+   let rg = /^a{3}$/ 表示让a重复3次才返回true
+
+   {n,} 重复n次或多次
+
+   let rg = /^a{3,}$/ 表示让a重复3次及以上
+
+   {n,m} 重复n次到m次
+
+   let rg = /^a{3,16}$/ 表示让a重复3到16次
+
+6. 预定义类 指的是某些常见模式的简写
+
+   \d 匹配0-9之间的任一数字，相当于[0-9]
+
+   \D 匹配0-9以外的字符，相当于`[^0-9]`
+
+   \w 匹配任意的字母、下划线和数字
+
+   \W 除所有字母、数字、下划线以外字符
+
+   \s 匹配空格（包括换行符、制表符、空格符等），相当于[\t\r\n\v\f]
+
+   \S 匹配非空格
+
+#### 正则表达式的替换
+
+##### replace替换
+
+replace()方法可以实现替换字符串操作，用来替换的参数可以是一个字符也可以是一个正则表达式
+
+`StringObject.replace(regexp/substar,replacement)`
+
+第一个参数：被替换的正则表达式或字符串
+
+第二个参数：替换为的字符串
+
+##### 正则表达式的参数
+
+/表达式/[switch]
+
+switch也称修饰符，按照什么样的模式来匹配，有三种值。
+
+- g 全局匹配
+- i 忽略大小写
+- gi 全局匹配并且忽略大小写
+
+## ES6新增
+
+### 1.let
+
+1. let声明的变量只在所处于的块级作用域有效，由{}包裹的为块级，es6之前没有
+
+   作用：1.在业务逻辑复杂的时候，防止内层变量覆盖外层变量
+
+   ​			2.防止循环变量变成全局变量
+
+2. 不存在变量提升
+
+3. 暂时性死区
+
+   ```
+   var num = 20;
+   if(true){
+   	num = 'abc';
+   	let num   //会报错
+   }
+   ```
+
+### 2.const
+
+1. 具有块级作用域
+
+2. 常量赋值后，值不能修改
+
+   基本类型一旦赋值，值不能修改
+
+   复杂类型不能重新赋值，但是可以修改其内部的值，即地址不能改变，但是地址指向的堆里的值可以改变
+
+3. 声明常量必须赋值
+
+   ```
+   const PI  //报错
+   const PI = 3.14
+   ```
+
+4. 不存在变量提升
+
+### 3.解构赋值
+
+#### 数组解构
+
+```
+let [a,b,c]=[1,2,3]
+
+let [bar,foo] = [1] //bar=1 foo=undefined
+```
+
+#### 对象解构
+
+```
+写法1：
+let person = {name:'zhnagsan',age:20}
+let {name,age} = person
+console.log(name)//'zhangsan'
+console.log(age)//age
+
+写法2：支持变量的名字于对象中属性的名字不一致
+let person = {name:'zhangsan',age:19}
+let {name:myName,age:myAge}=person
+console.log(name)//'zahngsan'
+console.log(age)//19
+```
+
+### 4.箭头函数
+
+```
+function sum(num1,num2){
+	return num1+num2
+}
+
+const sum =(num1,num2)=>num1+num2
+```
+
+注意：箭头函数不绑定this关键字，箭头函数中的this指向的是定义位置的上下文this
+
+```
+var obj = {
+	age:20,
+	say:()=>{
+		//如果用传统function，this指向的是obj这个对象
+		//在箭头函数中，是没有绑定this关键字的，要看上级的this指向，obj是一个对象，不能产生作用域，所以箭头函数被定义在了全局作用域下，window中没有age这个属性，所以报错。
+		console.log(this.age) 
+	}
+}
+obj.say()//undefined
+```
+
+### 5.剩余参数
+
+剩余参数语法允许我们将一个不定数量的参数表示为一个数组
+
+```
+function sum (first,...args){
+	console.log(first)//10
+	console.log(args)[20,30]
+}
+sum(10,20,30)
+```
+
+#### 剩余参数和解构的配合使用
+
+```
+let student = ['window','zhangsan','wangwu']
+let [s1,...s2]=student
+console.log(s1)//'window'
+console.log(s2)//['zhangsan','wangwu']
+```
+
+### 6.ES6内置对象扩展
+
+#### 数组扩展
+
+##### 扩展运算符（展开语法）
+
+扩展运算符可以将**数组**或**对象**转换成用逗号分隔的**参数序列**
+
+```
+let arry = [1,2,3]
+...arry //1,2,3 去掉括号后变成用逗号分开的参数序列
+console.log(...arry)//1 2 3 没有逗号，参数序列中的逗号会被当作参数分隔符被去掉
+```
+
+扩展运算符可以应用于**合并数组**
+
+```
+方法1：
+let ary1 = [1,2,3]
+let ary2 = [4,5,6]
+let ary3 = [...ary1,...ary2]
+
+方法2：
+ary1.push(...ary2)
+```
+
+扩展运算符可以将**伪数组**或**可遍历对象**转换为**真正的数组**
+
+```
+let oDives = document.getElementByTagName('div')
+oDives = [...odives]
+```
+
+##### Array.from()
+
+可以将伪（类）数组或可遍历对象转换为真正的数组
+
+```
+let arr = {
+	'0':'a',
+	'1':'b',
+	'2':'c',
+	length:3
+}
+let arr2 = Array.from(arr)//['a','b','c']
+
+该方法还可以接收第二参数，类似于数组的map方法，用来对每个元素进行处理，将处理后的值放入返回的数组
+let arr = {
+	'0':1,
+	'1':2,
+	length:2
+}
+let arr2 = Array.from(arr,item=>item*2)//[2,4]
+
+```
+
+##### find()
+
+用于找出第一个符合条件的数组成员，如果没有找到返回undefiened
+
+```
+let arr = [{
+	id:1,
+	name:'张三'
+},{
+	id:2,
+	name:'王五'
+}]
+let target = arr.find(item=>item.id ==2)
+console.log(target)//{id:2,name:'王五'}
+```
+
+##### findIndex()
+
+用于找出第一个符合条件的数组成员的位置，如果没有返回-1
+
+```
+let arr = [1,5,10,11,15]
+let index=arr.findIndex(item=>item>5)
+console.log(index)//2
+```
+
+##### includes()
+
+表示一个数组是否包含给定的值，返回布尔值
+
+```
+[1,2,3].includes(2) //true
+```
+
+#### 字符串扩展
+
+##### 模板字符串
+
+使用反引号定义``
+
+```
+let name= "zhangsan"
+let sayHello = `hello, my name is ${name}`
+```
+
+1. 模板字符串可以解析变量，用${}来包裹
+
+2. 模板字符串可以换行
+
+3. 在模板字符串中可以调用函数
+
+   ```
+   const sayHello=()=>'哈哈哈哈'
+   let greet=`${sayHello()} 你好`
+   console.log(greet)
+   ```
+
+##### starsWidth()和endsWidth()
+
+starsWidth()表示参数字符串是否在源字符串的头部，返回布尔值
+
+endsWidth()表示参数字符串是否在源字符串的尾部，返回布尔值
+
+##### repeat()
+
+repeat方法表示将原字符串重复n次，返回一个新字符串
+
+'x'.repeat(3) //'xxx'
+
+#### Set数据结构
+
+ES6提供新的数组结构Set，它类似于数组，但是成员的值都是唯一的，没有重复的值
+
+Set本身是一个构造函数，用new生成Set数据结构
+
+```
+const s=new Set([1,2,3,4,4])
+//.size属性用来看当前数据结构中包含了多少个值
+console.log(s.size)//4
+```
+
+```
+//用set做去重操作
+let set=new Set([1,2,3,3])
+let arr = [...set]
+console.log(arr)//[1,2,3]
+```
+
+##### add(value)
+
+添加某个值，返回set结构本身
+
+##### delet(value)
+
+删除某个值，返回一个布尔值
+
+##### has(value)
+
+返回一个布尔值，表示该值是否为set的成员
+
+##### clear()
+
+清除所有成员，没有返回值
+
+##### forEach()遍历
+
+set结构的实例与数组一样，也拥有forEach方法，用于对每个成员执行某种操作，没有返回值
+
+s.forEach(value=>console.log(value))
