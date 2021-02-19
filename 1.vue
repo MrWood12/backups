@@ -1,8 +1,7 @@
 <template>
   <div id="app">
-    <p>{{count}}</p>
-    <button @click="increment">+1</button>
-    <button @click="decrement">-1</button>
+    <p>我的个人信息：{{info}}</p>
+    <button @click="updateInfo">更新信息</button>
   </div>
 </template>
 
@@ -13,16 +12,13 @@ export default {
 
   },
   computed:{
-    count:function(){
-      return this.$store.state.count
+    info(){
+      return this.$store.state.info
     }
   },
   methods:{
-    increment:function(){
-      this.$store.commit("increment")
-    },
-    decrement:function(){
-      this.$store.commit("decrement")
+    updateInfo(){
+      this.$store.commit('updateInfo',{height:1.88})
     }
   }
 }

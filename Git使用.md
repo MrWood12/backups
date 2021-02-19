@@ -173,3 +173,11 @@ git config --global credential.helper store
 ```
 
 然后我们发现我只需要在第一次推送的时候输入账号密码，第二次往后都不需要再输入密码了。`--global`的配置是对该用户全局生效的，如果你只想当前项目生效，在配置的时候只需要去掉`--global`即可。当然了，如果你不想执行命令，直接Copy上面配置的内容到你的`.git/config`文件里面也是可以的。
+
+## 10.本地仓库与github仓库连接
+
+```
+git remote add origin 仓库地址
+git push -u origin master
+```
+

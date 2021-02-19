@@ -374,7 +374,7 @@ const app = new Vue({
 
 在这里methods和computed看起来都可以实现我们的功能，那么我们为什么要多一个计算属性呢。
 
-原因：计算属性会进行缓存，如果多次使用，发现计算属性没有发生改变时，计算属性只会调用一次，当计算属性发生改变，会再次调用，比起methods执行一次调用一次性能更好。
+原因：计算属性会**进行缓存**，如果多次使用，发现计算属性没有发生改变时，计算属性只会调用一次，当计算属性发生改变，会再次调用，比起methods执行一次调用一次性能更好。
 
 ```
 <div id="app">
@@ -1431,7 +1431,7 @@ const app = new Vue({
 
 #### 10.6组件数据存放
 
-组件时**无法访问**到**Vue实例**中的**data数据**
+组件是**无法访问**到**Vue实例**中的**data数据**
 
 ```
 <body>
@@ -3213,3 +3213,623 @@ changeCount(state,payload){
 }
 ```
 
+##### Mutation响应规则
+
+Vuex的store中的state是响应式的，当state中的数据发生改变时，Vue组件会自动刷新。
+
+这就要求我们必须遵守一些Vuex对应的规则
+
+- 提前在store中初始化好所需的属性
+- 当给state中的对象添加新属性时，使用下面的方式
+  - 方式1：使用Vue.set(obj,'newProp',123)
+  - 方式2：用新对象给旧对象重新赋值
+
+```
+//App.vue
+<template>
+  <div id="app">
+    <p>我的个人信息：{{info}}</p>
+    <button @click="updateInfo">更新信息</button>
+  </div>
+</template>
+
+<script >
+export default {
+  name:'App', 
+  computed:{
+    info(){
+      return this.$store.state.info
+    }
+  },
+  methods:{
+    updateInfo(){
+      this.$store.commit('updateInfo',{height:1.88})
+    }
+  }
+}
+</script>
+```
+
+```
+//Vuex
+const store = new Vuex.Store({
+	state:{
+		info:{
+			name:'why',age:18
+		}
+	},
+	mutations:{
+		updateInfo(state,payload){
+			//这样写是不会响应自动更新的
+			state.info['height']=payload.height
+			//下面两种方法是响应式的
+			//方法一：Vue.set()
+			Vue.set(state.info,'height',payload.height)
+			//方法二：给info赋值一个新对象
+			state.info = {...state.info,'height':payload.height}
+		}
+	}
+})
+```
+
+##### Mutation常量类型
+
+当我们的项目增大时, Vuex管理的状态越来越多, 需要更新状态的情况越来越多, 那么意味着Mutation中的方法越来越多。方法过多, 使用者需要花费大量的经历去记住这些方法, 甚至是多个文件间来回切换, 查看方法名称, 甚至如果不是复制的时候, 可能还会出现写错的情况。
+
+一种很常见的方案就是使用**常量**替代Mutation**事件的类型**。
+
+我们可以创建一个文件mutation-types.js文件，并定义我们的常量
+
+```
+//mutation-types.js
+export const UPDATE_INFO  = 'UPDATE_INFO'
+```
+
+```
+import Vuex from 'vuex'
+import Vue from 'vue'
+import * as types from './mutation-types'
+
+Vue.use(Vuex)
+
+const store = new Vuex.Store({
+	state:{
+		info:{
+			name:'why',age:18
+		}
+	},
+	mutations:{
+		[types.UPDATE_INFO](state,payload){
+			satet.info = {...satte.info,'height':payload.height}
+		}
+	}
+})
+export default store
+```
+
+```
+<script>
+	import {UPDATE_INFO} from './store/mutation-types'
+	export default {
+		name:'App',
+		computed:{
+			info(){
+				return this.$store.state.info
+			}
+		},
+		methods:{
+			updateInfo(){
+				this.$store.commit(UODATE_INFO,{height:1.88})
+			}
+		}
+	}
+</script>
+```
+
+##### Mutation同步函数
+
+通常情况下, Vuex要求我们Mutation中的方法必须是同步方法。主要的原因是当我们使用devtools时, 可以devtools可以帮助我们捕捉mutation的快照，但是如果是异步操作, 那么devtools将不能很好的追踪这个操作什么时候会被完成。
+
+所以通常情况下，不要用mutation进行异步操作
+
+#### Action异步操作
+
+Vuex中的Mutation不能进行异步操作，但是我们希望仍然可以在Vuex中进行异步操作，这时需要使用action。
+
+context是什么？
+
+context是和store对象具有相同方法和属性的对象，也就是说我们可以通过context去进行commit相关的操作，也可以获取context.state等
+
+```
+const store = new Vuex.Store({
+	state:{
+		count:0
+	},
+	mutations:{
+		increment(state){
+			satte.count++
+		}
+	},
+	actions:{
+		increment(context){
+			context.commit('increment')
+		}
+	}
+})
+```
+
+在Vue组件中，如果我们调用action中的方法，那么就需要使用dispatch
+
+```
+methods:{
+	increment(){
+		this.$store.dispatch('increment',{cCount:5})
+	}
+}
+```
+
+```
+mutations:{
+	increment(state,payload){
+		state.count+=payload.cCount
+	}
+},
+actions:{
+	increment(context,payload){
+		setTimeout(()=>{
+			context.commit('increment',payload)
+		},5000)
+	}
+}
+```
+
+##### Action异步与Promise合用
+
+Promise常用于异步操作，在Action中，我们可以将异步操作放在一个Promise中，并且在成功或者失败后，调用对应的resolve或reject。
+
+```
+actions:{
+	increment(context){
+		return new Promise((resolve)=>{
+			setTimeout(()=>{
+				context.commit('increment')
+				resolve()
+			},1000)
+		})
+	}
+}
+```
+
+```
+methods:{
+	increment(){
+		this.$store.dispatch('increment').then(res=>{
+			console.log('完成更新操作')
+		})
+	}
+}
+```
+
+#### Module模块管理
+
+Vue使用单一状态树,那么也意味着很多状态都会交给Vuex来管理，当应用变得非常复杂时,store对象就有可能变得相当臃肿。
+
+为了解决这个问题, Vuex允许我们将store分割成模块(Module), 而每个模块拥有自己的state、mutation、action、getters等
+
+```
+const moduleA = {
+	state:{...},
+	mutations:{...},
+	actions:{...},
+	getters:{...}
+}
+const moduleB = {
+	state:{...},
+	mutations:{...},
+	actions:{...},
+	getters:{...}
+}
+
+const store = new Vuex.Store({
+	modules:{
+		a:moduleA,
+		b:moduleB
+	}
+})
+
+store.state.a  //->moduleA 的状态
+store.state.b  //->moduleB 的状态
+```
+
+具体写法
+
+```
+const moduleA = {
+	state:{
+		count:0	
+	},
+	//局部状态通过context.state暴露出来，根节点状态为context.rootState
+	actions:{
+		incrementIfoddOnRootSum({satte,commit,rootState}){
+			if((satte.count+rootState.count)%2===1){
+				commit('increment')
+			}
+		}
+	}
+	mutations:{
+		increment(satte){
+			state.count++
+		}
+	},
+	getters:{
+		doubleCount(state){
+			return state.count *2
+		},
+		//如果getters中也需要使用全局状态，可以接受更多的参数
+		sumWithRootCount(state,getters,rootState){
+			return state.count+rootState.count
+		}
+	}
+
+}
+const moduleB = {
+}
+
+const store = new Vuex.Store({
+	satte:{
+		gCount:111
+	},
+	modules:{
+		a:moduleA,
+		b:moduleB
+	}
+})
+
+export default store
+```
+
+```
+<script>
+	export default {
+		name:'App',
+		computed:{
+			count(){
+				return this.$store.getters.doubleCount
+			}
+		},
+		methods:{
+			increment(){
+				this.$store.commit('increment')
+			}
+		}
+	}
+</script>
+```
+
+### 3.项目结构
+
+当我们的Vuex帮助我们管理过多内容时，好的项目结构可以让我们的代码更加清晰。
+
+![](F:\记录\img\Vuex项目结构.png)
+
+## 网络模块
+
+Vue中发送网络请求有很多的方式，那么在开发中如何选择。
+
+选择一：传统的Ajax，这是基于XMLHttpRequest（XHR），不用的原因：配置和调用方式混乱，真实开发中很少直接使用。
+
+选择二：jquery-ajax，不用的原因：vue的整个开发中都是不使用jquery的，当我们为了一个网络请求特地引用一个jquery就不合理，jquery代码1w+，vue的代码也1w+，没必要引用这个重量级的框架。
+
+选择三：axios框架，使用方便，优点很多
+
+### 1.JSONP
+
+在前端开发中，我们一种常见的网络请求方式是JSONP。
+
+使用JSONP的原因往往是为了解决跨域访问问题。
+
+不同源的网站（即协议、域名以及端口其中有一不同）是不能发送Ajax的请求，以及cookie的使用。这是为了防止恶意网站窃取信息。
+
+#### JSONP的原理
+
+JSONP的核心在于通过<script>标签的src来帮助我们请求数据。
+
+原因：我们的项目部署在domain1.com服务器上的时候是不能直接访问domain2.com服务器上的资料的，这时候我们利用<script>标签的src帮我们去服务器请求数据，将数据当作一个JavaScript函数来执行，并且执行的过程中传入我们需要的json。所以封装jsonp的核心在于我们监听window上的jsonp进行回调的名称。
+
+<img src="F:\记录\img\jsonp的原理.png" style="zoom: 50%;" />
+
+#### JSONP的封装
+
+```
+let count = 1;
+export default function originPJSONP(option){
+	//1.从传入的option中提取URL
+	const url = option.url
+	//2.在body中添加script标签
+	const body = document.getElementsByTagName('body')[0]
+	const script = document.createElement('script')
+	//3.内部生产一个不重复的callback
+	const callback = 'jsonp'+count++
+	//4.监听window上的jsonp调用
+	return new Promise((resolev,reject)=>{
+		try{
+			window[callback] = function(result){
+				body.removeChild(script)
+				resolve(result)
+			}
+			const params = handleParam(option.data);
+			script.src = url+'?callbacke='+callback+params
+			body.appendChild(script)
+		}
+		catch(e){
+			body.removeChild(script)
+			reject(e)
+		}
+	})
+}
+```
+
+```
+function handleParam(data){
+	let url=''
+	for(let key in data){
+		let value = data[key] !==undefined ?data[key]:''
+		url+=`&${key}=${encodeURIComponent(value)}`
+	}
+	return url
+}
+```
+
+### 2.axios
+
+功能：
+
+1. 在浏览器中发送XMLHttpRequests请求
+2. 在node.js中发送http请求
+3. 支持Promise API
+4. 拦截请求和响应
+5. 转换请求和响应数据
+6. 等等
+
+多种请求方式：
+
+- axios(config)
+- axios.request(config)
+- axios.get(url[,config])
+- axios.delete(url[,config])
+- axios.head(rul[,config])
+- axios.post(url[,data[,config]])
+- axios.put(urp[,data[,config]])
+- axios.patch(url[,data[,config]])
+
+#### 发送get请求
+
+```
+import axios from 'axios'
+export default {
+	name:'app',
+	created(){
+		//1.没有请求参数
+		axios.get('http://123.207.32.32:8000/category')
+			.then(res=>{
+				console.log(res)
+			}).catch(err=>{
+				console.log(err)
+			})
+		//2.有请求参数
+		axios.get('http://123.207.32.32:8000/home/data',{params:{type:'sell',page:1}})
+		.then(res=>{
+			console.log(res)
+		}).catch(err=>{
+			console.log(err)
+		})
+	}
+}
+```
+
+#### 发送并发请求
+
+有时我们可能需要同时发送两个请求，使用axios.all可以放入多个请求的数组，axios.all([])返回的结果是一个数组，使用axios.spread可将数组[res1,res2]展开为res1,res2
+
+```
+import axios from 'axios'
+export default {
+	name:'app',
+	created(){
+		//发送并发请求
+		axios.all([axios.get('http://123.207.32.32:8000/category'),
+							axios.get('http://123.207.32.32:8000/home/data',{params:							                {type:'sell',page:1}})])
+			.then(axios.spread((res1,res2)=>{
+				console.log(res1)
+				console.log(res2)
+			}))
+	}
+}
+```
+
+#### 全局配置
+
+在开发中可能很多参数都是固定的，这时候我们可以进行一些抽取，也可以利用axios的全局配置。
+
+axios.defaults.baseURL = '123.207.32.32:8000'
+
+axios.defaults.haders.post['Content-type']='application/x-www-form-urlencoded'
+
+```
+created(){
+	//提取全局的配置
+	axios.defaults.baseURL = 'http://123.207.32.32:8000'
+	
+	//发送并发请求
+	axios.all([aixos.get('/category'),
+						axios.get('/home/data',{params:{type:'sell',page:1}})])
+			.then(axios.spread((res1,res2)=>{
+				console.log(res1)
+				console.log(res2)
+			}))
+}
+```
+
+#### 常规的配置选项
+
+请求地址
+
+- url: '/user',
+
+请求类型
+
+- method: 'get',
+
+请根路径
+
+- baseURL: 'http://www.mt.com/api',
+
+请求前的数据处理
+
+- transformRequest:[function(data){}],
+
+请求后的数据处理
+
+- transformResponse: [function(data){}],
+
+自定义的请求头
+
+- headers:{'x-Requested-With':'XMLHttpRequest'},
+
+URL查询对象
+
+- params:{ id: 12 },
+
+查询对象序列化函数
+
+- paramsSerializer: function(params){ }
+
+request body
+
+- data: { key: 'aa'},
+
+超时设置s
+
+- timeout: 1000,
+
+跨域是否带Token
+
+- withCredentials: false,
+
+自定义请求处理
+
+- adapter: function(resolve, reject, config){},
+
+身份验证信息
+
+- auth: { uname: '', pwd: '12'},
+
+响应的数据格式 json / blob /document /arraybuffer / text / stream
+
+- responseType: 'json',
+
+#### axios实例
+
+为什么要创建axios实例
+
+- 当我们从axios模块中导入对象时，使用的实例时默认的实例。
+- 当给该实例设置一些默认配置的时候，这些配置就被固定下来了，但是后续的开发中，某些配置可能不太一样。比如某些请求需要使用特定的baseURL或者timeout或者content-Type等。
+- 这时候我们可以创建新的实例，并且传入属于该实例的配置。
+
+```
+//创建新实例
+const axiosInstance = axios.create({
+	baseURL:'http://123.207.32.32:8000',
+	timeout:5000,
+	headers:{
+		'Content-Type':'application/x-www-form-urlencoded'
+	}
+})
+```
+
+```
+//发送网络请求
+axiosInstance({
+	url:'/category',
+	method:'get'
+}).then(res=>{
+	console.log(res)
+}).catch(err=>{
+	console.log(err)
+})
+```
+
+#### axios封装
+
+```
+//axios.js
+import originAxios from 'axios'
+export default function axios(option){
+	return new Promise((resolve,reject)=>{
+		//1.创建axios实例
+		const instance = originAxios.creat({
+			baseURL:"/api",
+			timeout:5000,
+			headers:''
+		})
+		//2.传入对象进行网络请求
+		instance(option).then(res=>{
+			resolve(res)
+		}).catch(err=>{
+			reject(err)
+		})
+	})
+}
+```
+
+#### axios拦截器
+
+axios提供了拦截器，用于我们在发送每次请求或得到响应后进行对应的处理。
+
+```
+//配置请求和响应拦截
+instance.interceptors.request.use(config=>{
+	console.log('来到了request拦截success中');
+	return config
+}),err=>{
+	console.log('来到了request拦截failure中')
+	return err
+}
+
+instance.interceptors.response.use(response=>{
+	console.log('来到了response拦截success中');
+	return response.data
+}),err=>{
+	console.log('来到了response拦截failure中')
+	return err
+}
+```
+
+```
+axios({
+	url:'/home/data',
+	method:'get',
+	params:{
+		type:'sell',
+		page:1
+	}
+}).then(res=>{
+	console.log(res)
+}).catch(err=>{
+	console.log(err)
+})
+```
+
+![](F:\记录\img\axios拦截器显示.png)
+
+#### 请求拦截可以做到的事情
+
+1. 当发送网络请求时，在页面添加一个loading组件，作为动画
+2. 某些请求要求用户必须登录，判断用户是否有token，如果没有token跳转到login页面
+3. 对请求的参数进行序列化
+4. ...
+
+#### 响应拦截可以做到的事情
+
+1. 响应的成功拦截中，主要是对数据进行过滤
+2. 响应失败的拦截中可以根据status判断报错的错误码，跳转到不同的错误提示页面

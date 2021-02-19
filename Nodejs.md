@@ -2203,11 +2203,257 @@ User.findOne({
     })
 ```
 
+## async函数
+
+异步函数是异步编程语法的终极解决方案。它可以让我们将异步代码写成同步的格式，让代码不再有回调函数嵌套。
+
+> const fn = async()=>{}
+>
+> async function fn(){}
+
+1. 在普通函数定义前面增加async关键字，普通函数就变成了异步函数
+2. 异步函数默认的返回值是promise对象
+3. 在异步函数中使用了return关键字进行结果返回，结果被包含在promise中，代替resolve方法。
+4. 在异步函数内部使用throw关键字进行错误的抛出
+
+```
+async function fn(){
+	throw '发生了错误' //与return类似，throw执行，后面的代码就不会执行
+	return 123
+}
+fn().then(function(data){
+	console.log(data)
+}).catch(function(err){
+	console.log(err)
+})
+```
+
+5. 调用异步函数再链式调用then()方法，获取异步函数执行的结果
+6. 调用异步函数再链式调用catch方法，获取异步函数的错误信息
+
+### await关键字
+
+1. 只能出现在异步函数内
+2. await promise 它可以暂停异步函数的执行，等待promise对象返回结果后再向下执行函数。可以暂停异步函数向下执行，直到promise返回结果。
+3. await后面只能写promise对象，写其他类型API是不行的
+
+```
+//依次读取p1 p2 p3文件
+async function p1(){
+	return 'p1'
+}
+async function p2(){
+	return 'p2'
+}
+async function p3(){
+	return 'p3'
+}
+async function run(){
+	let r1 = await p1();//当await p1读取不到的时候不会执行下面代码
+	let r2 = await p2();
+	let r3 = await p3();
+	console.log(r1)
+	console.log(r2)
+	console.log(r3)
+}
+
+run()
+```
+
+### promisify方法
+
+调用promisify方法，改变现有异步API，让其值返回promise对象
+
+```
+const fs = require('fs')
+const promisify = require('util').promisify
+const readFile = promisify(fs.readFile)
+async function run(){
+	let r1 = await readFile('./1.txt','utf8')
+	let r2 = await readFile('./2.txt','utf8')
+	let r3 = await readFile('./3.txt','utf8')
+	console.log(r1)
+	console.log(r2)
+	console.log(r3)
+}
+run()
+```
 
 
-## Generator
 
-async函数
+## FormData
+
+### FormData的作用
+
+1. 模拟HTML表单，相当于将HTML表单映射成表单对象，自动将表单对象中的数据拼接成请求参数的格式。
+2. 异步上传二进制文件
+
+### FormData的使用
+
+1. 准备HTML表单
+
+   ```
+   <form id="form">
+   	<input type="text" name="username">
+   	<input type="password" name="password">
+   	<input type='button'>
+   </form>
+   ```
+
+2. 将HTML表单转换为formData对象
+
+   ```
+   var form = documen.getElementById('form')
+   var formData = new FormData(form)
+   ```
+
+3. 提交表单对象
+
+   ```
+   xhr.send(formData)
+   ```
+
+注意：1.formData对象不能用于get请求，因为对象需要被传递到send方法中，而get请求方式的请求参数只能放到请求地址后面。
+
+2.服务端**bodyParse模块不能解析formData表单数据**，需要用formidable模块
+
+### formData实例方法
+
+`formData.get('key')`获取表单对象属性中的值
+
+`formData.set('key','value')`设置表单对象中属性的值
+
+`formData.delete('key')`删除表单对象中的属性的值
+
+`formData.append('key','value')`向表单对象中追加属性值
+
+set和append区别在于，set会覆盖已有键名的值，append会保留两个值
+
+### formData二进制上传
+
+```
+<input type="file" id="file"/>
+```
+
+```
+var file = document.getElementById('file')
+//当用户选择文件时
+file.onchange=function(){
+	//创建空表单对象
+	var formData = new FormData();
+	//将用户选择的二进制文件追加到表单对象中
+	formData.append('attrName',this.file[0])
+	//配置ajax对象，请求方式必须为post
+	xhr.open('post','www.example.com')
+	xhr.send(formData)
+}
+```
+
+### formData文件上传进度展示
+
+```
+//当用户选择文件的时候
+file.onchange = function(){
+	//文件上传过程中持续触发onprogress事件
+	xhr.upload.onprogress = function(ev){
+		//当前上传文件大小/文件总大小，再将结果转换为百分数
+		//将结果赋值给进度条的宽度属性
+		bar.style.width=(ev.loaded/ev.total)*100+'%'
+	}
+}
+```
+
+### formData文件上传图片及时浏览
+
+在我们将图片上传到服务器端以后，服务器端通常会将图片地址作为响应数据传递到客户端，客户端可以从响应数据中获取图片地址，然后将图片再显示在页面中。
+
+```
+xhr.onload = function(){
+	var result = JSON.parse(xhr.responseText)
+	var img = document.createElement('img')
+	img.src = result.src;
+	img.onload = function(){
+		document.body.appendChild(this)
+	}
+}
+```
+
+
+
+## 同源政策
+
+### ajax请求限制
+
+Ajax只能向自己服务器发送请求，比如有A，B两个网站，A网站中的HTML只能向A网站发送Ajax请求。
+
+### 什么是同源
+
+如果两个页面拥有相同的协议，域名和端口，那么这两个页面就属于同一源，只要有一个不同，就是不同源。
+
+> http://www.example.com/dir/page.html
+>
+> http://www.example.com/dir/other.html 同源
+
+### 同源的目的
+
+同源政策是为了保证用户信息的安全，防止恶意的网站窃取数据。最初的同源政策是指A网站在客户端设置的cookie，B网站时无法访问的。
+
+随着互联网的发展，同源政策也越来越严格，在不同源的情况下，其中有一个规定就是无法向非同源地址发送Ajax请求，如果请求，浏览器就报错。
+
+### 使用JSONP解决同源限制问题（解决方案一）
+
+JSONP时json with padding的缩写，它不属于Ajax请求，但它可以模仿Ajax请求
+
+1. 将不同源的服务器端请求地址写在script标签的src属性中
+
+   ```
+   <script src="www.example.com"></script>
+   <script src="https://cdn.bootcss.com/jquery/jquery.min.js"></script>
+   ```
+
+2. 服务端响应数据必须是一个函数的调用，真正要发送给客户端的数据作为函数的调用的参数
+
+   ```
+   const data="fn({name:'张三',age:'20'})";
+   res.send(data)
+   ```
+
+3. 在客户端全局作用域下定义函数fn
+
+   ```
+   function fn(data){}
+   ```
+
+4. 在fn函数内部对服务器返回的数据进行处理
+
+   ```
+   function fn(data){console.log(data)}
+   ```
+
+JSONP代码优化
+
+1. 客户端需要将函数名称传递到服务器端
+2. 将script请求的发送变成动态请求
+3. 封装jsonp函数，方便请求
+4. 服务器端代码优化res.jsonp方法
+
+### CORS跨域资源共享（解决方案二）
+
+CORS，即跨域资源共享，它允许浏览器向跨域服务器发送Ajax请求克服了Ajax只能同源使用的限制。
+
+### 访问非同源数据，服务端解决办法（解决方案三）
+
+同源政策是浏览器与浏览器之间给予了ajax技术的限制，**服务器之间是不存在同源限制的**
+
+使用request模块
+
+### withCredentials属性
+
+在使用Ajax技术发送跨域请求的时候，默认情况下是不会在请求中携带cookie的。
+
+withCredentials：指定在涉及到跨域请求时，是否携带cookie信息，默认为false
+
+Access-Control-Allow-Credentials:true 允许客户端发送请求时携带cookie
 
 
 
