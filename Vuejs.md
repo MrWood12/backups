@@ -2156,6 +2156,7 @@ myFunc()
 import指令用于导入模块中的内容，比如main.js的代码
 
 ```
+//只有当export default导出的时候才可以省略大括号，平时都需要大括号
 improt {name,age,height} from './info.js'
 console.log(name,age,height)
 ```
@@ -3506,7 +3507,11 @@ export default store
 </script>
 ```
 
-### 3.项目结构
+### 3.核心联系图
+
+![](F:\记录\img\VueX.png)
+
+### 4.项目结构
 
 当我们的Vuex帮助我们管理过多内容时，好的项目结构可以让我们的代码更加清晰。
 
